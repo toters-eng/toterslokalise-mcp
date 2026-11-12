@@ -1,0 +1,57 @@
+{
+  "name": "@toters/toterslokalise-mcp",
+  "version": "0.1.0",
+  "description": "TotersLokalise MCP server for trusted developer localization workflows",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "toterslokalise-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src test --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toters-eng/toterslokalise-mcp.git"
+  },
+  "homepage": "https://github.com/toters-eng/toterslokalise-mcp#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "localization",
+    "i18n",
+    "translations",
+    "toterslokalise"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "typescript": "5.9.2",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "bugs": {
+    "url": "https://github.com/toters-eng/toterslokalise-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
