@@ -18,7 +18,7 @@ never bypasses TotersLokalise authorization.
   "mcpServers": {
     "toterslokalise": {
       "command": "npx",
-      "args": ["-y", "@toters/toterslokalise-mcp"],
+      "args": ["-y", "@totersapp/toterslokalise-mcp"],
       "env": {
         "TOTERSLOKALISE_ACCESS_KEY": "gl_live_…",
         "TOTERSLOKALISE_SECRET": "gl_secret_…"
@@ -30,7 +30,7 @@ never bypasses TotersLokalise authorization.
 
 3. Ask your assistant to list TotersLokalise projects.
 
-`npx` installs the published `@toters/toterslokalise-mcp` package (Node.js 20.19+).
+`npx` installs the published `@totersapp/toterslokalise-mcp` package (Node.js 20.19+).
 
 The server connects to the TotersLokalise API at
 `https://arcade.stage.toters-api.com/toters-lokalise` by default. Set
