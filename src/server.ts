@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { TotersLokaliseApiError } from './client.js';
 import type { TotersLokaliseClient } from './client.js';
+import { createKeys } from './create-keys.js';
 
 const MAX_MCP_TEXT = 200_000;
 
@@ -42,7 +43,7 @@ function failure(error: unknown) {
 }
 
 export function createTotersLokaliseMcpServer(client: TotersLokaliseClient) {
-  const server = new McpServer({ name: 'toterslokalise', version: '0.1.0' });
+  const server = new McpServer({ name: 'toterslokalise', version: '0.2.0' });
 
   server.registerTool(
     'toterslokalise_list_projects',
@@ -257,6 +258,42 @@ export function createTotersLokaliseMcpServer(client: TotersLokaliseClient) {
             approval,
           ),
         );
+      } catch (error) {
+        return failure(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'toterslokalise_create_keys',
+    {
+      description:
+        'WRITE ACTION: create translation keys with their text, e.g. keys and strings read from a Figma design. Values are keyed by locale (use the project languages, e.g. en-US, ar-LB). Existing text is kept unless existingValues is "overwrite". New translations land as drafts in the chosen environment. Use dryRun first to preview. Writing source-language (English) text needs a credential with the source:write scope.',
+      inputSchema: z.object({
+        ...projectInput,
+        keys: z
+          .array(
+            z.object({
+              key: z.string().min(1).max(190).describe('Key name, e.g. checkout.pay_button'),
+              namespace: z.string().min(1).max(80).optional().describe('Namespace; default "default"'),
+              description: z.string().max(500).optional().describe('Context for translators, e.g. the Figma frame'),
+              values: z
+                .record(z.string().min(2).max(35), z.string().max(10_000))
+                .refine((values) => Object.keys(values).length > 0, 'Give at least one value')
+                .describe('Text per locale, e.g. { "en-US": "Pay now" }'),
+            }),
+          )
+          .min(1)
+          .max(2_000),
+        existingValues: z.enum(['keep', 'overwrite']).default('keep'),
+        createNamespaces: z.boolean().default(false),
+        tags: z.array(z.string().min(1)).max(50).default([]),
+        dryRun: z.boolean().default(false),
+      }),
+    },
+    async (input) => {
+      try {
+        return result(await createKeys(client, input));
       } catch (error) {
         return failure(error);
       }

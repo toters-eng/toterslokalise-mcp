@@ -45,6 +45,7 @@ The server connects to the TotersLokalise API at
 | `translations:read` | Read translations and import sessions.                |
 | `exports:read`      | Export JSON, Apple `.strings`, and Android XML.       |
 | `imports:write`     | Analyze, approve, and cancel durable import sessions. |
+| `source:write`      | Add or change source-language (English) text. Owners only. |
 
 Use only `projects:read`, `translations:read`, and `exports:read` for read-only
 agents. Add `imports:write` only when the agent must import translations.
@@ -60,6 +61,25 @@ dashboard session credential here, and never commit or share the secret.
 - `toterslokalise_list_import_items` — page through analyzed items.
 - `toterslokalise_proceed_import` — apply an approved analysis (write action).
 - `toterslokalise_cancel_import` — cancel a session before approval.
+- `toterslokalise_create_keys` — create keys with their text in one call
+  (write action), for example keys and strings read from a Figma design by the
+  Figma MCP server. Values are per locale (`{ "en-US": "Pay now" }`); existing
+  text is kept unless `existingValues: "overwrite"`; `dryRun: true` previews.
+  Needs `imports:write`, plus `source:write` to write English.
+
+### Figma → TotersLokalise
+
+Connect both the Figma MCP server and this one in the same agent, then ask, for
+example: "Read the Checkout frame in Figma, list each text layer with its key
+name, and create those keys in TotersLokalise project `<id>` (namespace
+`checkout`) with the English text. Do a dry run first."
+
+### Single sign-on (Okta)
+
+The MCP server calls `/api/v1/*` directly with the credential. If that path is
+behind Okta, every call fails with "answered by a sign-in page": the platform
+team must exempt `/toters-lokalise/api/v1/*` from Okta (the API checks the
+credential itself).
 
 Analysis never mutates translations. Approval requires the server-issued
 `analysisHash` and `projectStateHash` plus a decision for every review-policy

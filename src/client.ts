@@ -65,12 +65,30 @@ export class TotersLokaliseClient {
   private async send(url: URL, init: RequestInit) {
     const response = await this.request(url, {
       ...init,
+      // A redirect means a single sign-on gateway (Okta) answered instead of
+      // the API; following it would return a login page as if it were data.
+      redirect: 'manual',
       headers: {
         authorization: this.authorization,
         accept: 'application/json, text/plain;q=0.9, application/xml;q=0.8',
         ...init.headers,
       },
     });
+    const contentType = response.headers.get('content-type') ?? '';
+    if (
+      response.type === 'opaqueredirect' ||
+      (response.status >= 300 && response.status < 400) ||
+      (contentType.includes('text/html') &&
+        (response.ok || response.status === 401 || response.status === 403))
+    ) {
+      const location = response.headers.get('location') ?? '';
+      throw new TotersLokaliseApiError(
+        response.status || 302,
+        `The request to ${url.origin} was answered by a sign-in page${
+          location ? ` (${new URL(location, url).host})` : ''
+        }, not the TotersLokalise API. The API path /api/v1/* must be reachable without single sign-on (Okta); ask the platform team to exempt it, or check TOTERSLOKALISE_API_ORIGIN.`,
+      );
+    }
     const text = await response.text();
     if (!response.ok) {
       let message =
@@ -83,7 +101,6 @@ export class TotersLokaliseClient {
       }
       throw new TotersLokaliseApiError(response.status, message.slice(0, 2_000));
     }
-    const contentType = response.headers.get('content-type') ?? '';
     return contentType.includes('json') && text ? JSON.parse(text) : text;
   }
 }
