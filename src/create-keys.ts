@@ -120,13 +120,13 @@ export async function createKeys(
       cursor = page.nextCursor;
     } while (cursor);
   }
-  const newNamespaces = [
-    ...new Set(
-      conflicts
-        .filter((item) => item.reasonCode === 'namespace_not_in_project')
-        .map((item) => item.namespace),
-    ),
-  ].sort();
+  // The analysis reports rows for a namespace the project does not have yet as
+  // "conflicts" (they wait for a namespace decision). They are new keys, not
+  // clashes with existing text, so count them separately.
+  const isNewNamespace = (item: Item) => item.reasonCode === 'namespace_not_in_project';
+  const newNamespaceItems = conflicts.filter(isNewNamespace);
+  const valueConflicts = conflicts.filter((item) => !isNewNamespace(item));
+  const newNamespaces = [...new Set(newNamespaceItems.map((item) => item.namespace))].sort();
   const resolutions = conflicts.map((item) => ({
     itemId: item.id,
     resolution:
@@ -138,19 +138,38 @@ export async function createKeys(
           ? ('use_imported' as const)
           : ('keep_existing' as const),
   }));
+  const overwrite = input.existingValues === 'overwrite';
+  // Values whose existing text differs from the one sent. The analysis calls
+  // them "updated" (decided by the session policy) or "conflict" (decided per
+  // row); either way they are only written when existingValues is overwrite.
+  const differing = (session.updatedCount ?? 0) + valueConflicts.length;
+  // Counts are per value (one key in one language).
   const summary = {
     sessionId: session.id,
-    new: session.newCount ?? 0,
-    updated: session.updatedCount ?? 0,
+    new: (session.newCount ?? 0) + (input.createNamespaces ? newNamespaceItems.length : 0),
+    updated: overwrite ? differing : 0,
     unchanged: session.unchangedCount ?? 0,
-    conflicts: conflicts.length,
-    newNamespaces,
-    skipped: excluded.map((item) => ({
-      key: item.key,
-      namespace: item.namespace,
-      locale: item.locale,
-      reason: item.reasonDetail ?? item.reasonCode,
-    })),
+    /** Values whose existing text differs from the one sent. */
+    conflicts: differing,
+    /** What happened to that existing text. */
+    existingText: differing ? (overwrite ? 'overwritten' : 'kept') : undefined,
+    newNamespaces: input.createNamespaces ? newNamespaces : [],
+    skipped: [
+      ...excluded.map((item) => ({
+        key: item.key,
+        namespace: item.namespace,
+        locale: item.locale,
+        reason: item.reasonDetail ?? item.reasonCode,
+      })),
+      ...(input.createNamespaces
+        ? []
+        : newNamespaceItems.map((item) => ({
+            key: item.key,
+            namespace: item.namespace,
+            locale: item.locale,
+            reason: `namespace "${item.namespace}" does not exist (set createNamespaces to create it)`,
+          }))),
+    ],
   };
   if (input.dryRun) return { ...summary, status: 'analyzed (dry run, nothing applied)' };
 

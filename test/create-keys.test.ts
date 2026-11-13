@@ -32,7 +32,8 @@ describe('create keys', () => {
             ? { items: [{ id: 'i1', key: 'pay', namespace: 'checkout', locale: 'en-US', classification: 'conflict', reasonCode: 'namespace_not_in_project', reasonDetail: null }] }
             : { items: [] };
         }
-        return { id: 's1', status, analysisHash: 'sha256:a', projectStateHash: 'sha256:b', newCount: 1 };
+        // The real analysis does not count rows waiting for a new namespace as new.
+        return { id: 's1', status, analysisHash: 'sha256:a', projectStateHash: 'sha256:b', newCount: 0 };
       }),
     } as unknown as TotersLokaliseClient;
     const result = await createKeys(
@@ -40,13 +41,53 @@ describe('create keys', () => {
       { projectId: 'p', environment: 'development', keys: [{ key: 'pay', namespace: 'checkout', values: { 'en-US': 'Pay' } }], existingValues: 'keep', createNamespaces: true, tags: [], dryRun: false },
       { pollMs: 1 },
     );
-    expect(result).toMatchObject({ status: 'completed', new: 1, newNamespaces: ['checkout'] });
+    expect(result).toMatchObject({ status: 'completed', new: 1, conflicts: 0, newNamespaces: ['checkout'], skipped: [] });
     const proceed = calls.find((call) => call.path.endsWith('/proceed'))!;
     expect(proceed.body).toMatchObject({
       conflicts: [{ itemId: 'i1', resolution: 'use_imported' }],
       namespaces: [{ namespace: 'checkout', action: 'create' }],
     });
     expect((calls[0]!.body as { conflictPolicy: string }).conflictPolicy).toBe('keep_existing');
+  });
+
+  const fakeAnalysis = (items: object[], counts: object) =>
+    ({
+      post: vi.fn(async () => ({ id: 's1', status: 'uploaded' })),
+      get: vi.fn(async (path: string, query?: Record<string, unknown>) =>
+        path.endsWith('/items')
+          ? { items: query?.classification === 'conflict' ? items : [] }
+          : { id: 's1', status: 'ready', ...counts },
+      ),
+    }) as unknown as TotersLokaliseClient;
+  const item = (key: string, reasonCode: string, namespace = 'checkout') => ({
+    id: key, key, namespace, locale: 'en-US', classification: 'conflict', reasonCode, reasonDetail: null,
+  });
+
+  it('counts only real clashes with existing text as conflicts', async () => {
+    // One differing value decided per row ("conflict") and one decided by the
+    // session policy ("updated", counted in updatedCount).
+    const client = fakeAnalysis(
+      [item('pay', 'namespace_not_in_project', 'payments'), item('title', 'existing_value_differs')],
+      { newCount: 2, updatedCount: 1, unchangedCount: 1 },
+    );
+    const base = { projectId: 'p', environment: 'development', keys: [], createNamespaces: true, tags: [], dryRun: true } as const;
+    expect(await createKeys(client, { ...base, existingValues: 'keep' }, { pollMs: 1 })).toMatchObject({
+      new: 3, updated: 0, unchanged: 1, conflicts: 2, existingText: 'kept', newNamespaces: ['payments'],
+    });
+    expect(await createKeys(client, { ...base, existingValues: 'overwrite' }, { pollMs: 1 })).toMatchObject({
+      new: 3, updated: 2, conflicts: 2, existingText: 'overwritten',
+    });
+  });
+
+  it('reports keys in a missing namespace as skipped when createNamespaces is false', async () => {
+    const client = fakeAnalysis([item('pay', 'namespace_not_in_project', 'payments')], { newCount: 0 });
+    const result = await createKeys(
+      client,
+      { projectId: 'p', environment: 'development', keys: [], existingValues: 'keep', createNamespaces: false, tags: [], dryRun: true },
+      { pollMs: 1 },
+    );
+    expect(result).toMatchObject({ new: 0, conflicts: 0, newNamespaces: [] });
+    expect(result).toHaveProperty('skipped', [expect.objectContaining({ key: 'pay', reason: expect.stringContaining('createNamespaces') })]);
   });
 
   it('dry run never proceeds', async () => {

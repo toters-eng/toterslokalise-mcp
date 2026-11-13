@@ -66,6 +66,9 @@ dashboard session credential here, and never commit or share the secret.
   Figma MCP server. Values are per locale (`{ "en-US": "Pay now" }`); existing
   text is kept unless `existingValues: "overwrite"`; `dryRun: true` previews.
   Needs `imports:write`, plus `source:write` to write English.
+  The result counts values (one key in one language): `new`, `updated`,
+  `unchanged`, and `conflicts` (existing text that differs), with
+  `existingText` saying whether that text was `kept` or `overwritten`.
 
 ### Figma → TotersLokalise
 
