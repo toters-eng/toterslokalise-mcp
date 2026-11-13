@@ -95,8 +95,8 @@ workflow, and troubleshooting: the **API & MCP reference** in TotersLokalise
 ## Releasing
 
 ```bash
-npm version 0.2.1 --tag-version-prefix=""
-git push origin main 0.2.1
+npm version 0.2.2 --tag-version-prefix=""
+git push origin main 0.2.2
 ```
 
 The Release workflow tests the tag and publishes it to npmjs.com.

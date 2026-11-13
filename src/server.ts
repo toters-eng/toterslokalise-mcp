@@ -43,7 +43,7 @@ function failure(error: unknown) {
 }
 
 export function createTotersLokaliseMcpServer(client: TotersLokaliseClient) {
-  const server = new McpServer({ name: 'toterslokalise', version: '0.2.0' });
+  const server = new McpServer({ name: 'toterslokalise', version: '0.2.1' });
 
   server.registerTool(
     'toterslokalise_list_projects',
