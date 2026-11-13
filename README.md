@@ -8,7 +8,7 @@ never bypasses TotersLokalise authorization.
 
 ## Quick start
 
-1. In TotersLokalise, open **Settings → Developer → API credentials** and create a
+1. In TotersLokalise, open **Organization settings → API credentials** and create a
    dedicated credential. Copy the access key and the one-time secret.
 2. Add this to your MCP host configuration (Cursor, Claude Desktop, Claude Code,
    or any stdio MCP host):
@@ -86,13 +86,14 @@ Analysis never mutates translations. Approval requires the server-issued
 conflict, so a stale or partial snapshot cannot be applied.
 
 Full documentation, including Cursor and Claude setup, the analyze/approve/apply
-workflow, and troubleshooting: [`docs/MCP.md`](../../docs/MCP.md).
+workflow, and troubleshooting: the **API & MCP reference** in TotersLokalise
+([Developer Hub → API reference](https://arcade.stage.toters-api.com/toters-lokalise/#/developers/api#mcp)).
 
 ## Releasing
 
 ```bash
-npm version 0.1.1 --tag-version-prefix=""
-git push origin main 0.1.1
+npm version 0.2.1 --tag-version-prefix=""
+git push origin main 0.2.1
 ```
 
 The Release workflow tests the tag and publishes it to npmjs.com.
