@@ -8,7 +8,7 @@ never bypasses TotersLokalise authorization.
 
 ## Quick start
 
-1. In TotersLokalise, open **Organization settings → API credentials** and create a
+1. In TotersLokalise, open **Workspace administration → API credentials** and create a
    dedicated credential. Copy the access key and the one-time secret.
 2. Add this to your MCP host configuration (Cursor, Claude Desktop, Claude Code,
    or any stdio MCP host):
