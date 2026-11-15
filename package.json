@@ -1,7 +1,7 @@
 {
   "name": "@totersapp/toterslokalise-mcp",
-  "version": "0.2.1",
-  "description": "TotersLokalise MCP server: lets AI assistants list projects, export translations and run reviewed imports with a scoped TotersLokalise API credential.",
+  "version": "0.3.0",
+  "description": "Lingo Rider MCP server: lets AI assistants list projects, download app-ready translation files and run reviewed imports with a scoped Lingo Rider API credential.",
   "type": "module",
   "license": "Apache-2.0",
   "bin": {

@@ -10,7 +10,7 @@ const secret = process.env.TOTERSLOKALISE_SECRET;
 
 if (!accessKey || !secret) {
   console.error(
-    'TOTERSLOKALISE_ACCESS_KEY and TOTERSLOKALISE_SECRET are required. Create a scoped organization API credential in TotersLokalise settings.',
+    'TOTERSLOKALISE_ACCESS_KEY and TOTERSLOKALISE_SECRET are required. Create one in Lingo Rider under Workspace administration → API credentials.',
   );
   process.exitCode = 1;
 } else {

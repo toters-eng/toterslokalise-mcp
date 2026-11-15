@@ -3,11 +3,12 @@ import * as z from 'zod/v4';
 import { TotersLokaliseApiError } from './client.js';
 import type { TotersLokaliseClient } from './client.js';
 import { createKeys } from './create-keys.js';
+import { writeExport } from './export-files.js';
 
 const MAX_MCP_TEXT = 200_000;
 
 const projectInput = {
-  projectId: z.string().min(1).describe('TotersLokalise project ID'),
+  projectId: z.string().min(1).describe('Lingo Rider project ID'),
   environment: z
     .string()
     .min(1)
@@ -43,13 +44,13 @@ function failure(error: unknown) {
 }
 
 export function createTotersLokaliseMcpServer(client: TotersLokaliseClient) {
-  const server = new McpServer({ name: 'toterslokalise', version: '0.2.1' });
+  const server = new McpServer({ name: 'toterslokalise', version: '0.3.0' });
 
   server.registerTool(
     'toterslokalise_list_projects',
     {
       description:
-        'List active TotersLokalise projects visible to the scoped organization credential.',
+        'List active Lingo Rider projects visible to the scoped organization credential.',
       inputSchema: z.object({
         limit: z.number().int().min(1).max(100).default(50),
         cursor: z.string().min(1).optional(),
@@ -100,6 +101,55 @@ export function createTotersLokaliseMcpServer(client: TotersLokaliseClient) {
             },
           ),
         );
+      } catch (error) {
+        return failure(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'toterslokalise_export_files',
+    {
+      description:
+        'Download app-ready translation files, the same as the Export screen: iOS .strings/.stringsdict, Android strings.xml, PHP, JSON, xcstrings, CSV or Excel, with {0} placeholders converted (%@ on iOS, %s on Android) and every language in one go. With outputDir the files are written (ZIPs unpacked) into that folder of the current project, e.g. "ios/Resources"; without it, text files are returned for review.',
+      inputSchema: z.object({
+        projectId: z.string().min(1).describe('Project ID'),
+        environment: z.string().min(1).default('production').describe('Environment slug; production by default'),
+        format: z.enum(['apple-strings', 'android-xml', 'php', 'json', 'xcstrings', 'csv', 'xlsx']),
+        locales: z.array(z.string().min(2)).max(50).optional().describe('Languages, e.g. ["en-US","ar-LB"]; all by default'),
+        namespaces: z.array(z.string().min(1)).max(1_000).optional().describe('Namespace names; all by default'),
+        tags: z.array(z.string().min(1)).max(50).optional(),
+        keyContains: z.string().max(200).optional().describe('Only keys whose name contains this text'),
+        statuses: z
+          .array(z.enum(['draft', 'in_review', 'approved', 'published']))
+          .max(4)
+          .optional()
+          .describe('Published only by default'),
+        fileName: z
+          .string()
+          .max(200)
+          .optional()
+          .describe('File name pattern with {locale} {locale_} {lang} {android} {values} {namespace} {project} {env}, e.g. "{locale}.lproj/Localizable.strings"'),
+        placeholders: z.enum(['platform', 'keep']).optional(),
+        argumentStyle: z.enum(['auto', 'numbered', 'simple']).optional(),
+        missing: z.enum(['skip', 'source', 'empty', 'null']).optional().describe('Missing translations: leave out (default), use source text, empty, or null (PHP/JSON)'),
+        keyCase: z.enum(['preserve', 'lower', 'upper', 'proper']).optional(),
+        keyQuotes: z.enum(['quoted', 'none']).optional(),
+        keyDetails: z.boolean().optional().describe('Add tags and descriptions'),
+        outputDir: z
+          .string()
+          .min(1)
+          .optional()
+          .describe('Folder (relative to the current project) to write the files into; existing files with the same names are replaced'),
+      }),
+    },
+    async ({ projectId, outputDir, namespaces, ...options }) => {
+      try {
+        const file = await client.postFile(`projects/${encodeURIComponent(projectId)}/exports`, {
+          ...options,
+          ...(namespaces ? { namespaces } : {}),
+        });
+        return result(await writeExport(file, outputDir));
       } catch (error) {
         return failure(error);
       }
